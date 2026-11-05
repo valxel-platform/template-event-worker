@@ -1,0 +1,74 @@
+spring:
+  application:
+    name: template-event-worker
+  threads:
+    virtual:
+      enabled: true
+  # The read model this worker keeps. Migrations in src/main/resources/db/migration run at start.
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/worker}
+    username: ${DATABASE_USER:worker}
+    password: ${DATABASE_PASSWORD:worker}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_GROUP:template-event-worker}   # one group per worker; every replica shares it
+      auto-offset-reset: earliest                       # a new worker starts from the beginning
+      isolation-level: read-committed
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        max.poll.interval.ms: 300000
+    # Only for parking records on the dead-letter topic.
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+    listener:
+      ack-mode: record                # commit each record's offset after it is applied
+      concurrency: ${WORKER_CONCURRENCY:1}   # up to the topic's partition count, per replica
+      observation-enabled: true       # continue the producer's trace (traceparent header)
+    # properties: { security.protocol: SASL_SSL, sasl.mechanism: SCRAM-SHA-512, sasl.jaas.config: ... }
+
+server:
+  port: ${PORT:8080}                  # actuator only: health, metrics
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  observations:
+    key-values:
+      service: ${spring.application.name}
+  # Traces over OTLP when the data plane's collector is set, e.g.
+  # MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT=http://otel-collector:4318/v1/traces
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
+logging:
+  structured:
+    format:
+      console: ecs                    # JSON logs; never log event data
+
+app:
+  worker:
+    topics: ${WORKER_TOPICS:local.template-service.greetings.v1}   # comma-separated
+    dead-letter-suffix: .dlt
+    retries: ${WORKER_RETRIES:4}
+    backoff: 500ms
+    max-backoff: 10s
+    dedup-retention: 7d
