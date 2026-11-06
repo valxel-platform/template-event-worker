@@ -65,6 +65,12 @@ logging:
       console: ecs                    # JSON logs; never log event data
 
 app:
+  # Where the read model lives: postgres (the datasource above) or dynamodb (VX-19). With dynamodb,
+  # OpenChoreo binds the table's name from the resource (workload.yaml) and the pod's identity
+  # signs requests; the worker still records applied events in Postgres.
+  store: ${READ_MODEL_STORE:postgres}
+  dynamodb:
+    table: ${GREETINGS_TABLE_NAME:}
   worker:
     topics: ${WORKER_TOPICS:local.template-service.greetings.v1}   # comma-separated
     dead-letter-suffix: .dlt
