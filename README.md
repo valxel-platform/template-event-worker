@@ -78,3 +78,18 @@ Kafka security settings go under `spring.kafka.properties`.
 1. Rename the package (`com.vrixel.worker`), `rootProject.name` and `spring.application.name`.
 2. Set `WORKER_TOPICS` and `KAFKA_GROUP` (one group per worker; every replica shares it).
 3. Replace the greeting handler, its table and its tests with your own.
+
+## AWS read models (VX-19)
+
+A read model can live in DynamoDB instead of Postgres when the design's Resources section gives
+the worker a `dynamodb-table` (for example `greetings: dynamodb-table; partition_key=id`, with
+`writes: <this worker>`):
+
+- `READ_MODEL_STORE=dynamodb`, and `workload.yaml` binds the table's name to
+  `GREETINGS_TABLE_NAME` (`dependencies.resources`). The SDLC tool writes both.
+- Credentials come from the SDK's default chain: in the platform, the pod's IAM role through EKS
+  Pod Identity, with only the actions the design declared. Never set keys.
+- `DynamoGreetingStore` writes one conditional update per event, applied only if the item is new
+  or from an earlier Kafka offset, so duplicates and replays change nothing. Applied events are
+  still recorded in Postgres.
+- Tests run against DynamoDB Local in a container (`DynamoGreetingStoreTest`).

@@ -1,0 +1,21 @@
+# OpenChoreo workload descriptor: how this worker runs and what it may reach. The build turns it
+# into the component's Workload; OpenChoreo creates the network policies from it.
+apiVersion: openchoreo.dev/v1alpha1
+metadata:
+  name: template-event-worker
+# No endpoints: nothing calls a worker (VX-17). Health and metrics are on the platform's port only.
+endpoints: []
+dependencies:
+  # The AWS resources the design gives this worker (VX-19). OpenChoreo binds each output to an
+  # environment variable once the resource is ready; the pod's own IAM role (EKS Pod Identity)
+  # holds only the declared access. The SDLC tool writes these from the HLD's Resources section.
+  # resources:
+  #   - ref: greetings
+  #     envBindings:
+  #       table: GREETINGS_TABLE_NAME
+configurations:
+  env:
+    - name: READ_MODEL_STORE
+      value: postgres            # dynamodb with the greetings resource above
+    - name: WORKER_TOPICS
+      value: local.template-service.greetings.v1   # <product>.<service>.<entity>.v1

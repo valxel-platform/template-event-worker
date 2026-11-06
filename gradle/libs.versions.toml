@@ -1,6 +1,10 @@
 # One place for versions. Dependabot proposes updates here and in the Gradle wrapper.
 [versions]
 spring-boot = "4.1.2"
+aws-sdk = "2.44.14"
+
+[libraries]
+aws-sdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
