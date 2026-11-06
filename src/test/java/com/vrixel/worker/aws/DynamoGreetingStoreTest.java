@@ -74,11 +74,11 @@ class DynamoGreetingStoreTest {
 
     @Test
     void theStoreIsChosenByConfiguration() {
-        assertThat(new StoreConfig().greetingStore("postgres", "", "", null)).isInstanceOf(
+        assertThat(new StoreConfig().greetingStore("postgres", "", "", null, null)).isInstanceOf(
                 com.vrixel.worker.greeting.JdbcGreetingStore.class);
-        assertThatThrownBy(() -> new StoreConfig().greetingStore("dynamodb", " ", "", null))
+        assertThatThrownBy(() -> new StoreConfig().greetingStore("dynamodb", " ", "", null, null))
                 .hasMessageContaining("GREETINGS_TABLE_NAME");
-        assertThatThrownBy(() -> new StoreConfig().greetingStore("cassandra", "", "", null))
+        assertThatThrownBy(() -> new StoreConfig().greetingStore("cassandra", "", "", null, null))
                 .hasMessageContaining("use postgres or dynamodb");
     }
 }

@@ -19,6 +19,7 @@ The example applies `vrixel.greeting.saved.v1`, published by the service templat
 | New event types | Types without a handler are skipped and counted | Producers can add types before workers handle them |
 | Schema | Flyway migrations in `src/main/resources/db/migration`, run at start | The store's shape is versioned with the code that fills it |
 | Tracing | Kafka observations continue the producer's trace from the `traceparent` header; OTLP export as in the service template | Follow a change from the request to every store it reaches |
+| AWS calls | OpenTelemetry's AWS SDK instrumentation on the DynamoDB client: each call is a span of this component, with its table, latency and error (`StoreConfig`) | See a slow or throttled table from the component, in OpenChoreo's traces; the table's own CloudWatch alarms come with it from the platform |
 | Metrics | `worker_events_total{type,outcome}` and the Kafka client's consumer lag on `/actuator/prometheus` | Alert on lag and on parked records |
 | Tests | Unit tests, and integration tests against real Postgres and Kafka (Testcontainers) | Duplicates, ordering, replays and dead letters are proven on every PR |
 
