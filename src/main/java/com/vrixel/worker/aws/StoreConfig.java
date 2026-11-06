@@ -2,7 +2,10 @@ package com.vrixel.worker.aws;
 
 import com.vrixel.worker.greeting.GreetingStore;
 import com.vrixel.worker.greeting.JdbcGreetingStore;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.awssdk.v2_2.AwsSdkTelemetry;
 import java.net.URI;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +19,9 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
  * environment variable OpenChoreo binds from the resource (workload.yaml), and credentials from
  * the SDK's default chain: in the platform, the pod's own IAM role through EKS Pod Identity, never
  * keys (VX-19). {@code app.dynamodb.endpoint} points at DynamoDB Local in tests only.
+ *
+ * <p>Every AWS call is a span of this component (OpenTelemetry's AWS SDK instrumentation), so
+ * OpenChoreo's traces show its DynamoDB calls, their latency and their errors and throttling.
  */
 @Configuration(proxyBeanMethods = false)
 public class StoreConfig {
@@ -25,7 +31,8 @@ public class StoreConfig {
             @Value("${app.store:postgres}") String store,
             @Value("${app.dynamodb.table:}") String table,
             @Value("${app.dynamodb.endpoint:}") String endpoint,
-            JdbcClient jdbc) {
+            JdbcClient jdbc,
+            ObjectProvider<OpenTelemetry> openTelemetry) {
         return switch (store) {
             case "postgres" -> new JdbcGreetingStore(jdbc);
             case "dynamodb" -> {
@@ -33,14 +40,17 @@ public class StoreConfig {
                     throw new IllegalStateException(
                             "app.store=dynamodb needs app.dynamodb.table (GREETINGS_TABLE_NAME, bound from the resource)");
                 }
-                yield new DynamoGreetingStore(dynamo(endpoint), table);
+                yield new DynamoGreetingStore(dynamo(endpoint, openTelemetry.getIfAvailable(OpenTelemetry::noop)), table);
             }
             default -> throw new IllegalStateException("Unknown app.store " + store + ": use postgres or dynamodb");
         };
     }
 
-    static DynamoDbClient dynamo(String endpoint) {
-        DynamoDbClientBuilder builder = DynamoDbClient.builder().httpClientBuilder(UrlConnectionHttpClient.builder());
+    static DynamoDbClient dynamo(String endpoint, OpenTelemetry openTelemetry) {
+        DynamoDbClientBuilder builder = DynamoDbClient.builder()
+                .httpClientBuilder(UrlConnectionHttpClient.builder())
+                .overrideConfiguration(c -> c.addExecutionInterceptor(
+                        AwsSdkTelemetry.create(openTelemetry).createExecutionInterceptor()));
         if (endpoint != null && !endpoint.isBlank()) {
             builder.endpointOverride(URI.create(endpoint));
         }

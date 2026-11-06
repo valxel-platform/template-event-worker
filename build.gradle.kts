@@ -32,10 +32,13 @@ dependencies {
         exclude(group = "software.amazon.awssdk", module = "apache-client")
     }
     implementation("software.amazon.awssdk:url-connection-client")
+    // Each AWS call as a span of this component, in OpenChoreo's traces.
+    implementation(libs.otel.aws.sdk)
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("io.opentelemetry:opentelemetry-sdk-testing")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
