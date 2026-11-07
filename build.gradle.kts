@@ -24,6 +24,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
     implementation("org.flywaydb:flyway-database-postgresql")
+    // Feature flags from the product's Flipt over OFREP (com.vrixel.worker.flags).
+    implementation(libs.openfeature.sdk)
+    implementation("org.springframework.boot:spring-boot-starter-restclient")
     // AWS read models (VX-19): DynamoDB through the SDK's default credentials (the pod's identity),
     // on the JDK's HTTP client so no second HTTP stack comes along.
     implementation(platform(libs.aws.sdk.bom))

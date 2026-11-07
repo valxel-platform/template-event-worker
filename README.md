@@ -20,6 +20,7 @@ The example applies `vrixel.greeting.saved.v1`, published by the service templat
 | Schema | Flyway migrations in `src/main/resources/db/migration`, run at start | The store's shape is versioned with the code that fills it |
 | Tracing | Kafka observations continue the producer's trace from the `traceparent` header; OTLP export as in the service template | Follow a change from the request to every store it reaches |
 | AWS calls | OpenTelemetry's AWS SDK instrumentation on the DynamoDB client: each call is a span of this component, with its table, latency and error (`StoreConfig`) | See a slow or throttled table from the component, in OpenChoreo's traces; the table's own CloudWatch alarms come with it from the platform |
+| Feature flags | OpenFeature with an OFREP provider for the product's Flipt (`FLAGS_URL`); `Flags.enabled(key, user)` | A feature's new handling ships dark and is released with the rest of the feature |
 | Metrics | `worker_events_total{type,outcome}` and the Kafka client's consumer lag on `/actuator/prometheus` | Alert on lag and on parked records |
 | Tests | Unit tests, and integration tests against real Postgres and Kafka (Testcontainers) | Duplicates, ordering, replays and dead letters are proven on every PR |
 
@@ -44,6 +45,30 @@ class PatientRegisteredHandler implements EventHandler {
   change should cause another change, the service that owns it reacts to the event.
 - New event versions are new types (`...v2`); handle both until producers have moved.
 - Never change a topic's partition count: per-record order depends on it. Create a new topic version.
+
+## Feature flags
+
+A feature that changes how an event is applied puts the new handling behind its flag, keyed by
+the user the event is about or who caused it (the same key the service used, so a person gets the
+same answer in both):
+
+```java
+if (flags.enabled("emr.emr-feat-3.check-in-kiosk", event.dataText("saved_by"))) {
+    // the new handling
+} else {
+    // today's handling
+}
+```
+
+`com.vrixel.worker.flags` reads flags over OFREP from the product's Flipt: `FLAGS_URL`,
+`FLAGS_ENVIRONMENT`, `FLAGS_NAMESPACE` and, if needed, `FLAGS_TOKEN`, as in the service template.
+Without `FLAGS_URL`, or when Flipt can't be reached, every flag reads as off.
+
+While the SDLC tool releases a feature gradually, each delivery attempt that checked a flag counts
+on the side it got, and as failed when the handler throws (each retry is another attempt; the last
+failure parks the record). Once a minute the worker logs one `vrixel.flag_cohorts` line per flag
+with the counts and nothing else; the tool compares the two sides from OpenChoreo's logs and stops
+the release when the "on" side fails more.
 
 ## Rebuilding the store
 
