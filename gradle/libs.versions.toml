@@ -5,8 +5,10 @@ aws-sdk = "2.44.14"
 # OpenTelemetry's AWS SDK instrumentation: the release built on the OpenTelemetry SDK Spring Boot manages
 # (Boot 4.1.2: 1.62.0, instrumentation 2.28.0). Move it with Spring Boot.
 otel-instrumentation = "2.28.0-alpha"
+openfeature = "1.23.0"
 
 [libraries]
+openfeature-sdk = { module = "dev.openfeature:sdk", version.ref = "openfeature" }
 aws-sdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }
 otel-aws-sdk = { module = "io.opentelemetry.instrumentation:opentelemetry-aws-sdk-2.2", version.ref = "otel-instrumentation" }
 
