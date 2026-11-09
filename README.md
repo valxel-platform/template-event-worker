@@ -67,10 +67,11 @@ if (flags.enabled("emr.emr-feat-3.check-in-kiosk", event.dataText("saved_by"))) 
 Without `FLAGS_URL`, or when Flipt can't be reached, every flag reads as off.
 
 While the SDLC tool releases a feature gradually, each delivery attempt that checked a flag counts
-on the side it got, and as failed when the handler throws (each retry is another attempt; the last
-failure parks the record). Once a minute the worker logs one `vrixel.flag_cohorts` line per flag
+on the side it got, as failed when the handler throws (each retry is another attempt; the last
+failure parks the record), and as slow when it takes longer than 5 s, the lag budget
+(`FLAG_COHORTS_SLOW_MS`). Once a minute the worker logs one `vrixel.flag_cohorts` line per flag
 with the counts and nothing else; the tool compares the two sides from OpenChoreo's logs and stops
-the release when the "on" side fails more.
+the release when the "on" side fails more or is slow more often.
 
 ## Rebuilding the store
 
@@ -123,3 +124,16 @@ the worker a `dynamodb-table` (for example `greetings: dynamodb-table; partition
   or from an earlier Kafka offset, so duplicates and replays change nothing. Applied events are
   still recorded in Postgres.
 - Tests run against DynamoDB Local in a container (`DynamoGreetingStoreTest`).
+
+## Performance tests
+
+When the Vrixel SDLC labels a pull request `vrixel:perf-smoke` (a handler, a migration, the store,
+settings or the runtime changes; or the reviewer saw a performance risk), `perf.yml` runs
+`WorkerPerfTest` on main's code and the PR's: a burst of 3,000 events through real Kafka and
+Postgres, measuring seconds until 95% are in the store, events per second, and parked events.
+`perf/compare.py` posts `perf-smoke / report`: failed when the PR is more than 20% slower than main
+or misses the budget (95% within 5 s, under 1% parked). The test runs only with
+`-Dperf.out=<file>`, so unit runs don't start its containers. A worker has no staging load test (it
+would need the environment's Kafka credentials); consumer lag and `worker_dead_lettered_total` watch
+it in production.
+
