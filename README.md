@@ -67,10 +67,11 @@ if (flags.enabled("emr.emr-feat-3.check-in-kiosk", event.dataText("saved_by"))) 
 Without `FLAGS_URL`, or when Flipt can't be reached, every flag reads as off.
 
 While the SDLC tool releases a feature gradually, each delivery attempt that checked a flag counts
-on the side it got, and as failed when the handler throws (each retry is another attempt; the last
-failure parks the record). Once a minute the worker logs one `vrixel.flag_cohorts` line per flag
+on the side it got, as failed when the handler throws (each retry is another attempt; the last
+failure parks the record), and as slow when it takes longer than 5 s, the lag budget
+(`FLAG_COHORTS_SLOW_MS`). Once a minute the worker logs one `vrixel.flag_cohorts` line per flag
 with the counts and nothing else; the tool compares the two sides from OpenChoreo's logs and stops
-the release when the "on" side fails more.
+the release when the "on" side fails more or is slow more often.
 
 ## Rebuilding the store
 
