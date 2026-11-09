@@ -42,6 +42,15 @@ class FlagsTest {
     }
 
     @Test
+    void answersAreReusedPerFlagAndUser() {
+        Flags cached = new Flags(flags(true).client(), java.time.Duration.ofMinutes(1));
+        assertThat(cached.enabled(KEY, "nurse-1")).isTrue();
+        flags(false); // the flag is turned off at the server
+        assertThat(cached.enabled(KEY, "nurse-1")).isTrue(); // still the cached answer
+        assertThat(cached.enabled(KEY, "nurse-2")).isFalse(); // another user is asked for
+    }
+
+    @Test
     void withoutAFlagServerEveryFlagIsOff() {
         assertThat(new Flags(api.getClient()).enabled(KEY)).isFalse();
     }
