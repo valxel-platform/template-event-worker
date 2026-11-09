@@ -49,6 +49,14 @@ dependencies {
     testImplementation("org.awaitility:awaitility")
     testImplementation("org.testcontainers:testcontainers")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    // kafka-clients brings lz4-java; versions before 1.11.4 have a high advisory.
+    constraints {
+        implementation("at.yawk.lz4:lz4-java") {
+            version { require("[1.11.4,2.0)") }
+            because("CVE-2026-106451 (GHSA-mcr4-qmvw-px4g), through kafka-clients")
+        }
+    }
 }
 
 tasks.withType<JavaCompile>().configureEach {
