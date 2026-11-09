@@ -123,3 +123,16 @@ the worker a `dynamodb-table` (for example `greetings: dynamodb-table; partition
   or from an earlier Kafka offset, so duplicates and replays change nothing. Applied events are
   still recorded in Postgres.
 - Tests run against DynamoDB Local in a container (`DynamoGreetingStoreTest`).
+
+## Performance tests
+
+When the Vrixel SDLC labels a pull request `vrixel:perf-smoke` (a handler, a migration, the store,
+settings or the runtime changes; or the reviewer saw a performance risk), `perf.yml` runs
+`WorkerPerfTest` on main's code and the PR's: a burst of 3,000 events through real Kafka and
+Postgres, measuring seconds until 95% are in the store, events per second, and parked events.
+`perf/compare.py` posts `perf-smoke / report`: failed when the PR is more than 20% slower than main
+or misses the budget (95% within 5 s, under 1% parked). The test runs only with
+`-Dperf.out=<file>`, so unit runs don't start its containers. A worker has no staging load test (it
+would need the environment's Kafka credentials); consumer lag and `worker_dead_lettered_total` watch
+it in production.
+
