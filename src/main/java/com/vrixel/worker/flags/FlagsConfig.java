@@ -42,8 +42,10 @@ public class FlagsConfig {
             return null;
         }
         SimpleClientHttpRequestFactory http = new SimpleClientHttpRequestFactory();
-        http.setConnectTimeout(Duration.ofSeconds(2));
-        http.setReadTimeout(Duration.ofSeconds(2));
+        // A slow Flipt costs an event at most a quarter of a second (the flag then reads as off);
+        // with answers cached in Flags, most events don't call Flipt at all.
+        http.setConnectTimeout(Duration.ofMillis(250));
+        http.setReadTimeout(Duration.ofMillis(250));
         return new OfrepProvider(RestClient.builder().requestFactory(http), props.url(), props.environment(),
                 props.namespace(), props.token());
     }

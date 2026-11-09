@@ -21,7 +21,9 @@ The example applies `vrixel.greeting.saved.v1`, published by the service templat
 | Tracing | Kafka observations continue the producer's trace from the `traceparent` header; OTLP export as in the service template | Follow a change from the request to every store it reaches |
 | AWS calls | OpenTelemetry's AWS SDK instrumentation on the DynamoDB client: each call is a span of this component, with its table, latency and error (`StoreConfig`) | See a slow or throttled table from the component, in OpenChoreo's traces; the table's own CloudWatch alarms come with it from the platform |
 | Feature flags | OpenFeature with an OFREP provider for the product's Flipt (`FLAGS_URL`); `Flags.enabled(key, user)` | A feature's new handling ships dark and is released with the rest of the feature |
-| Metrics | `worker_events_total{type,outcome}` and the Kafka client's consumer lag on `/actuator/prometheus` | Alert on lag and on parked records |
+| Metrics | `worker_events_total{type,outcome}`, `worker_dead_lettered_total{topic,exception}` and the Kafka client's consumer lag on `/actuator/prometheus` | Alert on lag, and on the first parked record |
+| Throughput | Offsets are committed once per poll (`ack-mode: batch`), after every record in it is applied; flags are cached 30 s per flag and user (`FLAGS_CACHE_SECONDS`) and a Flipt call waits at most 250 ms | Far fewer broker round trips per event; a crash replays a few applied records, which are skipped as duplicates |
+| Encryption | `DATA_CLASS` `phi` or `payments` refuses to start unless Kafka uses `SSL` or `SASL_SSL`; the database password comes from a secret (`DATABASE_PASSWORD`, no default) | PHI never crosses the network in plain text |
 | Tests | Unit tests, and integration tests against real Postgres and Kafka (Testcontainers) | Duplicates, ordering, replays and dead letters are proven on every PR |
 
 ## Writing a handler

@@ -8,7 +8,7 @@ spring:
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/worker}
     username: ${DATABASE_USER:worker}
-    password: ${DATABASE_PASSWORD:worker}
+    password: ${DATABASE_PASSWORD:}       # from a secret; no default
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
     consumer:
@@ -27,7 +27,10 @@ spring:
       properties:
         enable.idempotence: true
     listener:
-      ack-mode: record                # commit each record's offset after it is applied
+      # Offsets are committed once per poll, after every record in it is applied, not once per
+      # record: far fewer broker round trips. After a crash a few applied records come again; the
+      # applied_events table makes them duplicates, which are skipped.
+      ack-mode: batch
       concurrency: ${WORKER_CONCURRENCY:1}   # up to the topic's partition count, per replica
       observation-enabled: true       # continue the producer's trace (traceparent header)
     # properties: { security.protocol: SASL_SSL, sasl.mechanism: SCRAM-SHA-512, sasl.jaas.config: ... }
@@ -65,12 +68,16 @@ logging:
       console: ecs                    # JSON logs; never log event data
 
 app:
+  # general | phi | payments. phi and payments workers refuse to start unless Kafka uses TLS
+  # (spring.kafka.security.protocol: SSL or SASL_SSL).
+  data-class: ${DATA_CLASS:general}
   # Feature flags: the product's Flipt, read over OFREP. Unset, every flag reads as off.
   flags:
     url: ${FLAGS_URL:}
     environment: ${FLAGS_ENVIRONMENT:}   # e.g. production
     namespace: ${FLAGS_NAMESPACE:}       # e.g. emr
     token: ${FLAGS_TOKEN:}               # only if the product's Flipt requires one for evaluation
+    cache-seconds: ${FLAGS_CACHE_SECONDS:30}   # each answer is reused this long, per flag and user
   # Where the read model lives: postgres (the datasource above) or dynamodb (VX-19). With dynamodb,
   # OpenChoreo binds the table's name from the resource (workload.yaml) and the pod's identity
   # signs requests; the worker still records applied events in Postgres.
