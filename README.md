@@ -101,7 +101,9 @@ Kafka security settings go under `spring.kafka.properties`.
 
 ## After creating a repo from this template
 
-1. Rename the package (`com.vrixel.worker`), `rootProject.name` and `spring.application.name`.
+1. Rename the package (`com.vrixel.worker`). The SDLC tool has already put the component's name in
+   the files `.vrixel/identity` lists (`rootProject.name`, `spring.application.name`, the Workload,
+   CI); a repo created by hand needs them renamed.
 2. Set `WORKER_TOPICS` and `KAFKA_GROUP` (one group per worker; every replica shares it).
 3. Replace the greeting handler, its table and its tests with your own.
 
