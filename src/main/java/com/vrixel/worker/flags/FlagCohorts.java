@@ -24,6 +24,11 @@ import org.slf4j.LoggerFactory;
  *
  * <pre>{@code vrixel.flag_cohorts {"flag":"emr.emr-feat-3.kiosk","on":{"requests":40,"errors":0,"slow":1},"off":{"requests":760,"errors":2,"slow":9}}}</pre>
  *
+ * <p>The product events an attempt records ({@code ProductEvents.record}) count on the same side,
+ * so the tool can also compare how often work with a feature on does what its goal counts:
+ *
+ * <pre>{@code vrixel.flag_cohorts {"flag":"...","on":{"requests":40,"errors":0,"slow":1,"events":{"checkin_completed":9}},"off":{...}}}</pre>
+ *
  * <p>Only counts leave the worker: no user, event or value beyond the flag's key.
  */
 public class FlagCohorts implements AutoCloseable {
@@ -33,6 +38,8 @@ public class FlagCohorts implements AutoCloseable {
     private static final Pattern KEY = Pattern.compile("[A-Za-z0-9._-]{1,200}");
     private static final ThreadLocal<Map<String, Boolean>> CURRENT = new ThreadLocal<>();
     private static final ThreadLocal<Long> STARTED = new ThreadLocal<>();
+    private static final ThreadLocal<Map<String, Integer>> EVENTS = new ThreadLocal<>();
+    private static final Pattern EVENT = Pattern.compile("[a-z][a-z0-9_.]{0,99}");
     /**
      * Slower than this counts as slow: 5000 ms, the event lag budget (one attempt slower than that breaks it
      * alone), unless FLAG_COHORTS_SLOW_MS says otherwise.
@@ -41,6 +48,8 @@ public class FlagCohorts implements AutoCloseable {
 
     // on requests, on errors, on slow, off requests, off errors, off slow
     private final Map<String, AtomicLongArray> counts = new ConcurrentHashMap<>();
+    // flag -> event -> on, off
+    private final Map<String, Map<String, AtomicLongArray>> events = new ConcurrentHashMap<>();
     private final ScheduledExecutorService reporter;
 
     /** Counts without reporting (tests); {@link #reporting()} logs once a minute. */
@@ -76,7 +85,16 @@ public class FlagCohorts implements AutoCloseable {
     /** An attempt starts: the flags it evaluates are noted until {@link #end}. */
     public static void begin() {
         CURRENT.set(new HashMap<>());
+        EVENTS.set(new HashMap<>());
         STARTED.set(System.nanoTime());
+    }
+
+    /** A product event happened in the current attempt (ProductEvents.record). Outside one it isn't counted here. */
+    public static void event(String name) {
+        Map<String, Integer> current = EVENTS.get();
+        if (current != null && name != null && EVENT.matcher(name).matches()) {
+            current.merge(name, 1, Integer::sum);
+        }
     }
 
     /** A flag was evaluated for the current attempt. Outside one it isn't counted. */
@@ -96,7 +114,9 @@ public class FlagCohorts implements AutoCloseable {
     /** The attempt ended after this long: count it for each flag it evaluated, slow over {@link #SLOW_MS}. */
     public void end(boolean failed, long elapsedMillis) {
         Map<String, Boolean> current = CURRENT.get();
+        Map<String, Integer> happened = EVENTS.get();
         CURRENT.remove();
+        EVENTS.remove();
         STARTED.remove();
         if (current == null) {
             return;
@@ -110,6 +130,11 @@ public class FlagCohorts implements AutoCloseable {
             }
             if (elapsedMillis > SLOW_MS) {
                 c.incrementAndGet(side + 2);
+            }
+            if (happened != null && !happened.isEmpty()) {
+                Map<String, AtomicLongArray> byEvent = events.computeIfAbsent(key, k -> new ConcurrentHashMap<>());
+                happened.forEach((name, n) -> byEvent.computeIfAbsent(name, x -> new AtomicLongArray(2))
+                        .addAndGet(on ? 0 : 1, n));
             }
         });
     }
@@ -131,11 +156,21 @@ public class FlagCohorts implements AutoCloseable {
             if (c == null) {
                 continue;
             }
+            Map<String, AtomicLongArray> ev = events.remove(key);
             lines.add(MARKER + " {\"flag\":\"" + key + "\",\"on\":{\"requests\":" + c.get(0) + ",\"errors\":" + c.get(1)
-                    + ",\"slow\":" + c.get(2) + "},\"off\":{\"requests\":" + c.get(3) + ",\"errors\":" + c.get(4)
-                    + ",\"slow\":" + c.get(5) + "}}");
+                    + ",\"slow\":" + c.get(2) + events(ev, 0) + "},\"off\":{\"requests\":" + c.get(3) + ",\"errors\":"
+                    + c.get(4) + ",\"slow\":" + c.get(5) + events(ev, 1) + "}}");
         }
         return lines;
+    }
+
+    private static String events(Map<String, AtomicLongArray> ev, int side) {
+        if (ev == null || ev.isEmpty()) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>();
+        new java.util.TreeMap<>(ev).forEach((name, n) -> parts.add("\"" + name + "\":" + n.get(side)));
+        return ",\"events\":{" + String.join(",", parts) + "}";
     }
 
     void report() {
