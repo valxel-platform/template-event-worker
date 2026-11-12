@@ -104,3 +104,7 @@ tasks.bootJar {
 tasks.jar {
     enabled = false // only the executable bootJar is published
 }
+
+// Every resolved version is locked (gradle.lockfile), and every artifact is checked against its
+// checksum in gradle/verification-metadata.xml; the supply-chain-pins workflow writes and refreshes both.
+dependencyLocking { lockAllConfigurations() }
