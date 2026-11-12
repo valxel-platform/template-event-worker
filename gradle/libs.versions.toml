@@ -1,7 +1,7 @@
 # One place for versions. Dependabot proposes updates here and in the Gradle wrapper.
 [versions]
 spring-boot = "4.1.2"
-aws-sdk = "2.44.14"
+aws-sdk = "2.57.11"
 # OpenTelemetry's AWS SDK instrumentation: the release built on the OpenTelemetry SDK Spring Boot manages
 # (Boot 4.1.2: 1.62.0, instrumentation 2.28.0). Move it with Spring Boot.
 otel-instrumentation = "2.28.0-alpha"
