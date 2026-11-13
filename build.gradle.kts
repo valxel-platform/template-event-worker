@@ -6,8 +6,8 @@ plugins {
     alias(libs.plugins.spring.boot)
 }
 
-group = "com.vrixel"
-description = "Vrixel event worker template: applies Kafka events to the product's data stores"
+group = "com.valxel"
+description = "Valxel event worker template: applies Kafka events to the product's data stores"
 
 java {
     toolchain { languageVersion = JavaLanguageVersion.of(21) }
@@ -24,7 +24,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
     implementation("org.flywaydb:flyway-database-postgresql")
-    // Feature flags from the product's Flipt over OFREP (com.vrixel.worker.flags).
+    // Feature flags from the product's Flipt over OFREP (com.valxel.worker.flags).
     implementation(libs.openfeature.sdk)
     implementation("org.springframework.boot:spring-boot-starter-restclient")
     // AWS read models (VX-19): DynamoDB through the SDK's default credentials (the pod's identity),
