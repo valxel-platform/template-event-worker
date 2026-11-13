@@ -1,5 +1,5 @@
-# Performance smoke test, on pull requests the Vrixel SDLC labels vrixel:perf-smoke or
-# vrixel:perf-full. WorkerPerfTest sends a burst of 3,000 events through real Kafka and Postgres
+# Performance smoke test, on pull requests the Valxel SDLC labels valxel:perf-smoke or
+# valxel:perf-full. WorkerPerfTest sends a burst of 3,000 events through real Kafka and Postgres
 # (Testcontainers) on main's code and then the PR's, on this runner: seconds until 95% are in the
 # store, events per second, and parked events. perf/compare.py posts "perf-smoke / report": failed
 # when the PR is more than 20% slower than main or misses the budget (5 s, under 1% errors).
@@ -19,7 +19,7 @@ concurrency:
 jobs:
   perf-smoke:
     name: perf-smoke
-    if: contains(github.event.pull_request.labels.*.name, 'vrixel:perf-smoke') || contains(github.event.pull_request.labels.*.name, 'vrixel:perf-full')
+    if: contains(github.event.pull_request.labels.*.name, 'valxel:perf-smoke') || contains(github.event.pull_request.labels.*.name, 'valxel:perf-full')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

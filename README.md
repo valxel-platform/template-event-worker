@@ -1,11 +1,11 @@
 # Event worker template (Java 21, Spring Boot 4, Spring Kafka)
 
 Keeps one of the product's data stores up to date from Kafka. Services change state by publishing
-events to Kafka first (constitution VX-16, `com.vrixel.service.events` in the service template);
+events to Kafka first (constitution VX-16, `com.valxel.service.events` in the service template);
 this worker reads those topics and applies each event to its store. Kafka is the record. The
 store is a copy that can always be rebuilt by replaying the topics.
 
-The example applies `vrixel.greeting.saved.v1`, published by the service template's
+The example applies `valxel.greeting.saved.v1`, published by the service template's
 `PUT /api/v1/greetings/{id}`, to a `greetings` table in Postgres. Replace it with your handlers.
 
 ## What you get
@@ -20,7 +20,7 @@ The example applies `vrixel.greeting.saved.v1`, published by the service templat
 | Schema | Flyway migrations in `src/main/resources/db/migration`, run at start | The store's shape is versioned with the code that fills it |
 | Tracing | Kafka observations continue the producer's trace from the `traceparent` header; OTLP export as in the service template | Follow a change from the request to every store it reaches |
 | AWS calls | OpenTelemetry's AWS SDK instrumentation on the DynamoDB client: each call is a span of this component, with its table, latency and error (`StoreConfig`) | See a slow or throttled table from the component, in OpenChoreo's traces; the table's own CloudWatch alarms come with it from the platform |
-| Product events | `ProductEvents.record("consent_synced")`: a counter (`vrixel.events`), a summary line a minute and per-flag counts | The SDLC tool proves in staging that a feature's goal events fire, reads goals from them after release, and compares work with the feature on against off |
+| Product events | `ProductEvents.record("consent_synced")`: a counter (`valxel.events`), a summary line a minute and per-flag counts | The SDLC tool proves in staging that a feature's goal events fire, reads goals from them after release, and compares work with the feature on against off |
 | Feature flags | OpenFeature with an OFREP provider for the product's Flipt (`FLAGS_URL`); `Flags.enabled(key, user)` | A feature's new handling ships dark and is released with the rest of the feature |
 | Metrics | `worker_events_total{type,outcome}`, `worker_dead_lettered_total{topic,exception}` and the Kafka client's consumer lag on `/actuator/prometheus` | Alert on lag, and on the first parked record |
 | Throughput | Offsets are committed once per poll (`ack-mode: batch`), after every record in it is applied; flags are cached 30 s per flag and user (`FLAGS_CACHE_SECONDS`) and a Flipt call waits at most 250 ms | Far fewer broker round trips per event; a crash replays a few applied records, which are skipped as duplicates |
@@ -32,7 +32,7 @@ The example applies `vrixel.greeting.saved.v1`, published by the service templat
 ```java
 @Component
 class PatientRegisteredHandler implements EventHandler {
-    public String type() { return "vrixel.patient.registered.v1"; }
+    public String type() { return "valxel.patient.registered.v1"; }
 
     public void apply(Event event, Position at) {
         // Upsert keyed by the record's id; only move forward:
@@ -63,14 +63,14 @@ if (flags.enabled("emr.emr-feat-3.check-in-kiosk", event.dataText("saved_by"))) 
 }
 ```
 
-`com.vrixel.worker.flags` reads flags over OFREP from the product's Flipt: `FLAGS_URL`,
+`com.valxel.worker.flags` reads flags over OFREP from the product's Flipt: `FLAGS_URL`,
 `FLAGS_ENVIRONMENT`, `FLAGS_NAMESPACE` and, if needed, `FLAGS_TOKEN`, as in the service template.
 Without `FLAGS_URL`, or when Flipt can't be reached, every flag reads as off.
 
 While the SDLC tool releases a feature gradually, each delivery attempt that checked a flag counts
 on the side it got, as failed when the handler throws (each retry is another attempt; the last
 failure parks the record), and as slow when it takes longer than 5 s, the lag budget
-(`FLAG_COHORTS_SLOW_MS`). Once a minute the worker logs one `vrixel.flag_cohorts` line per flag
+(`FLAG_COHORTS_SLOW_MS`). Once a minute the worker logs one `valxel.flag_cohorts` line per flag
 with the counts and nothing else; the tool compares the two sides from OpenChoreo's logs and stops
 the release when the "on" side fails more or is slow more often.
 
@@ -84,9 +84,9 @@ ProductEvents.record("consent_synced");
 ProductEvents.record("consent_synced", Map.of("consent_type", "treatment")); // categories only
 ```
 
-`com.vrixel.worker.outcomes.ProductEvents` counts it on the counter `vrixel.events` (attribute
-`event`), in a `vrixel.events {"consent_synced":12}` line once a minute (the SDLC tool counts these
-in staging before G6), and on each side of the attempt's `vrixel.flag_cohorts` line as `"events"`
+`com.valxel.worker.outcomes.ProductEvents` counts it on the counter `valxel.events` (attribute
+`event`), in a `valxel.events {"consent_synced":12}` line once a minute (the SDLC tool counts these
+in staging before G6), and on each side of the attempt's `valxel.flag_cohorts` line as `"events"`
 (compared during gradual releases). It works as in the service template: names are lowercase
 words, and an attribute that names or identifies a person throws.
 
@@ -121,8 +121,8 @@ Kafka security settings go under `spring.kafka.properties`.
 
 ## After creating a repo from this template
 
-1. Rename the package (`com.vrixel.worker`). The SDLC tool has already put the component's name in
-   the files `.vrixel/identity` lists (`rootProject.name`, `spring.application.name`, the Workload,
+1. Rename the package (`com.valxel.worker`). The SDLC tool has already put the component's name in
+   the files `.valxel/identity` lists (`rootProject.name`, `spring.application.name`, the Workload,
    CI); a repo created by hand needs them renamed.
 2. Set `WORKER_TOPICS` and `KAFKA_GROUP` (one group per worker; every replica shares it).
 3. Replace the greeting handler, its table and its tests with your own.
@@ -144,7 +144,7 @@ the worker a `dynamodb-table` (for example `greetings: dynamodb-table; partition
 
 ## Performance tests
 
-When the Vrixel SDLC labels a pull request `vrixel:perf-smoke` (a handler, a migration, the store,
+When the Valxel SDLC labels a pull request `valxel:perf-smoke` (a handler, a migration, the store,
 settings or the runtime changes; or the reviewer saw a performance risk), `perf.yml` runs
 `WorkerPerfTest` on main's code and the PR's: a burst of 3,000 events through real Kafka and
 Postgres, measuring seconds until 95% are in the store, events per second, and parked events.
