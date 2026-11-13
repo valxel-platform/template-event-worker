@@ -20,6 +20,7 @@ The example applies `vrixel.greeting.saved.v1`, published by the service templat
 | Schema | Flyway migrations in `src/main/resources/db/migration`, run at start | The store's shape is versioned with the code that fills it |
 | Tracing | Kafka observations continue the producer's trace from the `traceparent` header; OTLP export as in the service template | Follow a change from the request to every store it reaches |
 | AWS calls | OpenTelemetry's AWS SDK instrumentation on the DynamoDB client: each call is a span of this component, with its table, latency and error (`StoreConfig`) | See a slow or throttled table from the component, in OpenChoreo's traces; the table's own CloudWatch alarms come with it from the platform |
+| Product events | `ProductEvents.record("consent_synced")`: a counter (`vrixel.events`), a summary line a minute and per-flag counts | The SDLC tool proves in staging that a feature's goal events fire, reads goals from them after release, and compares work with the feature on against off |
 | Feature flags | OpenFeature with an OFREP provider for the product's Flipt (`FLAGS_URL`); `Flags.enabled(key, user)` | A feature's new handling ships dark and is released with the rest of the feature |
 | Metrics | `worker_events_total{type,outcome}`, `worker_dead_lettered_total{topic,exception}` and the Kafka client's consumer lag on `/actuator/prometheus` | Alert on lag, and on the first parked record |
 | Throughput | Offsets are committed once per poll (`ack-mode: batch`), after every record in it is applied; flags are cached 30 s per flag and user (`FLAGS_CACHE_SECONDS`) and a Flipt call waits at most 250 ms | Far fewer broker round trips per event; a crash replays a few applied records, which are skipped as duplicates |
@@ -72,6 +73,22 @@ failure parks the record), and as slow when it takes longer than 5 s, the lag bu
 (`FLAG_COHORTS_SLOW_MS`). Once a minute the worker logs one `vrixel.flag_cohorts` line per flag
 with the counts and nothing else; the tool compares the two sides from OpenChoreo's logs and stops
 the release when the "on" side fails more or is slow more often.
+
+## Product events: whether a feature moves its goal
+
+When the HLD's Instrumentation section names this worker as the one that records an event (the
+outcome happens as the event is applied), record it in the handler:
+
+```java
+ProductEvents.record("consent_synced");
+ProductEvents.record("consent_synced", Map.of("consent_type", "treatment")); // categories only
+```
+
+`com.vrixel.worker.outcomes.ProductEvents` counts it on the counter `vrixel.events` (attribute
+`event`), in a `vrixel.events {"consent_synced":12}` line once a minute (the SDLC tool counts these
+in staging before G6), and on each side of the attempt's `vrixel.flag_cohorts` line as `"events"`
+(compared during gradual releases). It works as in the service template: names are lowercase
+words, and an attribute that names or identifies a person throws.
 
 ## Rebuilding the store
 
