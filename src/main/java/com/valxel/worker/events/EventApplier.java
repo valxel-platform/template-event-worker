@@ -7,6 +7,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,16 +24,47 @@ public class EventApplier {
     private final JdbcClient jdbc;
     private final Map<String, EventHandler> handlers;
     private final MeterRegistry meters;
+    private final EventContracts contracts;
 
+    @Autowired
     public EventApplier(JdbcClient jdbc, List<EventHandler> handlers, MeterRegistry meters) {
+        this(jdbc, handlers, meters, EventContracts.load(EventApplier.class.getClassLoader(), "contracts"));
+    }
+
+    public EventApplier(JdbcClient jdbc, List<EventHandler> handlers, MeterRegistry meters, EventContracts contracts) {
         this.jdbc = jdbc;
         this.handlers = handlers.stream().collect(Collectors.toMap(EventHandler::type, Function.identity()));
         this.meters = meters;
+        this.contracts = contracts;
     }
 
     @Transactional
     public Outcome apply(Event event, Position at) {
-        EventHandler handler = handlers.get(event.type());
+        String dataset = contracts.dataset(at.topic());
+        try {
+            Outcome outcome = applyChecked(event, at);
+            count(dataset, outcome.name().toLowerCase());
+            return outcome;
+        } catch (InvalidEventException e) {
+            count(dataset, "parked"); // straight to the dead-letter topic (KafkaConfig)
+            throw e;
+        }
+    }
+
+    // Per dataset, for the platform's reconciliation: what the producer published against what this
+    // worker applied, skipped or parked.
+    private void count(String dataset, String outcome) {
+        meters.counter("valxel.dataset.events", "dataset", dataset, "outcome", outcome).increment();
+    }
+
+    private Outcome applyChecked(Event received, Position at) {
+        EventHandler handler = handlers.get(received.type());
+        Event event = received;
+        if (handler != null) {
+            // The contract's view of the data: properties this copy doesn't know are dropped, the rest checked.
+            event = contracts.forTopic(at.topic()).map(c -> received.withData(EventContracts.check(c, received.data())))
+                    .orElse(received);
+        }
         Outcome outcome;
         if (handler == null) {
             // Not ours (yet): producers may add types before workers handle them.
