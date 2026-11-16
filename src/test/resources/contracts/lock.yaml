@@ -1,0 +1,2 @@
+# A synthetic contract for the tests (the tool writes the real ones into contracts/).
+emr.patients: {version: 1.2.0, sha: 0123456789abcdef, topic: emr.intake-api.patients.v1}

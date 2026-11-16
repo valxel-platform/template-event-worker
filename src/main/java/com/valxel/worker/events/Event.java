@@ -38,6 +38,11 @@ public record Event(String id, String type, String source, String subject, Insta
         return new Event(id, type, source, text(root, "subject"), time, root.path("data"));
     }
 
+    /** The same event with other data (its contract's view of it). */
+    public Event withData(JsonNode other) {
+        return new Event(id, type, source, subject, time, other);
+    }
+
     /** A string field of the event's data, or an InvalidEventException naming it (never its value). */
     public String dataText(String field) {
         JsonNode v = data.path(field);

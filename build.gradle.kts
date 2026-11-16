@@ -108,3 +108,11 @@ tasks.jar {
 // Every resolved version is locked (gradle.lockfile), and every artifact is checked against its
 // checksum in gradle/verification-metadata.xml; the supply-chain-pins workflow writes and refreshes both.
 dependencyLocking { lockAllConfigurations() }
+
+// The approved data contracts (contracts/, written by the SDLC tool) ship on the classpath, so the
+// worker checks every event it applies without reading GitHub.
+tasks.processResources {
+    from("contracts") {
+        into("contracts")
+    }
+}

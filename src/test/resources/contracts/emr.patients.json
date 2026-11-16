@@ -1,0 +1,20 @@
+{
+  "$id": "valxel:dataset/emr.patients/1.2.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "patient_id": {"type": "string", "format": "uuid", "x-classification": "none"},
+    "mrn": {"type": "string", "pattern": "^[0-9]+$", "maxLength": 12, "x-classification": "phi"},
+    "status": {"type": "string", "enum": ["active", "merged"], "x-classification": "none"},
+    "born_on": {"type": "string", "format": "date", "x-classification": "phi"},
+    "visits": {"type": "integer", "x-classification": "none"},
+    "score": {"type": "number", "x-classification": "none"},
+    "consented": {"type": "boolean", "x-classification": "none"},
+    "updated_at": {"type": "string", "format": "date-time", "x-classification": "none"},
+    "tags": {"type": "array", "x-classification": "none"},
+    "address": {"type": "object", "x-classification": "pii"}
+  },
+  "required": ["patient_id", "mrn"],
+  "title": "Patients",
+  "type": "object"
+}

@@ -10,6 +10,7 @@ COPY gradle gradle
 COPY gradle.lockfil[e] ./
 RUN ./gradlew --no-daemon dependencies > /dev/null
 COPY src src
+COPY contracts contracts
 RUN ./gradlew --no-daemon bootJar -x test \
  && java -Djarmode=tools -jar build/libs/app.jar extract --layers --destination /extracted
 
