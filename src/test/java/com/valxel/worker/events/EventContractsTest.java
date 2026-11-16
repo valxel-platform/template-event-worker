@@ -60,10 +60,13 @@ class EventContractsTest {
     @Test
     void theApplierCountsEachDatasetAndParksWhatBreaksItsContract() {
         SimpleMeterRegistry meters = new SimpleMeterRegistry();
-        EventApplier applier = new EventApplier(null, List.of(), meters, contracts);
+        DatasetCounts summary = new DatasetCounts();
+        EventApplier applier = new EventApplier(null, List.of(), meters, contracts, summary);
         Event event = Event.parse(EventTest.event("e-1", "{\"x\":1}"), mapper);
         assertThat(applier.apply(event, new Position("emr.intake-api.patients.v1", 0, 1))).isEqualTo(EventApplier.Outcome.SKIPPED);
         assertThat(meters.counter("valxel.dataset.events", "dataset", "emr.patients", "outcome", "skipped").count()).isEqualTo(1);
+        assertThat(summary.drain()).isEqualTo("valxel.datasets {\"emr.patients\":{\"skipped\":1}}");
+        assertThat(new EventApplier(null, List.of(), meters, contracts)).isNotNull();
         assertThat(EventContracts.none().forTopic("emr.intake-api.patients.v1")).isEmpty();
         assertThat(EventContracts.load(getClass().getClassLoader(), "no-such-dir").forTopic("x")).isEmpty();
         assertThatThrownBy(() -> EventContracts.load(getClass().getClassLoader(), "broken-contracts"))

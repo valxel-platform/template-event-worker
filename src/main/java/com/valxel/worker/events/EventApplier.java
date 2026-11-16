@@ -25,17 +25,25 @@ public class EventApplier {
     private final Map<String, EventHandler> handlers;
     private final MeterRegistry meters;
     private final EventContracts contracts;
+    private final DatasetCounts summary;
 
     @Autowired
     public EventApplier(JdbcClient jdbc, List<EventHandler> handlers, MeterRegistry meters) {
-        this(jdbc, handlers, meters, EventContracts.load(EventApplier.class.getClassLoader(), "contracts"));
+        this(jdbc, handlers, meters, EventContracts.load(EventApplier.class.getClassLoader(), "contracts"),
+                DatasetCounts.reporting());
     }
 
     public EventApplier(JdbcClient jdbc, List<EventHandler> handlers, MeterRegistry meters, EventContracts contracts) {
+        this(jdbc, handlers, meters, contracts, new DatasetCounts());
+    }
+
+    public EventApplier(JdbcClient jdbc, List<EventHandler> handlers, MeterRegistry meters, EventContracts contracts,
+            DatasetCounts summary) {
         this.jdbc = jdbc;
         this.handlers = handlers.stream().collect(Collectors.toMap(EventHandler::type, Function.identity()));
         this.meters = meters;
         this.contracts = contracts;
+        this.summary = summary;
     }
 
     @Transactional
@@ -54,6 +62,7 @@ public class EventApplier {
     // Per dataset, for the platform's reconciliation: what the producer published against what this
     // worker applied, skipped or parked.
     private void count(String dataset, String outcome) {
+        summary.count(dataset, outcome); // the line the platform reconciles in staging
         meters.counter("valxel.dataset.events", "dataset", dataset, "outcome", outcome).increment();
     }
 
