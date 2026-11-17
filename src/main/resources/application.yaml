@@ -67,6 +67,20 @@ logging:
     format:
       console: ecs                    # JSON logs; never log event data
 
+# Error reports (com.valxel.worker.observability.ErrorReports). Sentry starts only when SENTRY_DSN
+# is set (no sentry.dsn here, so an unset DSN leaves Sentry off entirely). Unhandled exceptions and
+# ERROR logs become events, grouped into issues; their alerts reach the SDLC tool.
+sentry:
+  environment: ${ENVIRONMENT:local}
+  release: ${SENTRY_RELEASE:}
+  send-default-pii: false
+  # Every report names its component, so the SDLC tool routes its issues to it.
+  tags:
+    component: ${spring.application.name}
+  logging:
+    minimum-event-level: error
+    minimum-breadcrumb-level: error
+
 app:
   # general | phi | payments. phi and payments workers refuse to start unless Kafka uses TLS
   # (spring.kafka.security.protocol: SSL or SASL_SSL).

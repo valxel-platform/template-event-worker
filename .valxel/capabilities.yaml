@@ -1,0 +1,15 @@
+# Where this template implements each capability its role needs (agentic-sdlc config/template-contract.yaml).
+# valxel repos check reads this file; keep a path here when you move the code.
+dataset-counts: src/main/java/com/valxel/worker/events/DatasetCounts.java
+dependency-review: .github/workflows/ci.yml
+dependency-updates: .github/dependabot.yml
+error-reports: src/main/java/com/valxel/worker/observability/ErrorReports.java
+flag-cohorts: src/main/java/com/valxel/worker/flags/FlagCohorts.java
+flags: src/main/java/com/valxel/worker/flags/Flags.java
+image-scan: .github/workflows/ci.yml
+json-logs: src/main/resources/application.yaml
+product-events: src/main/java/com/valxel/worker/outcomes/ProductEvents.java
+security-policy: SECURITY.md
+security-scans: .github/workflows/security.yml
+supply-chain-pins: .github/workflows/supply-chain-pins.yml
+tracing: build.gradle.kts

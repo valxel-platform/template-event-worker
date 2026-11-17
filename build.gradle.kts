@@ -24,6 +24,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
     implementation("org.flywaydb:flyway-database-postgresql")
+    // Error reports to Sentry or GlitchTip when SENTRY_DSN is set (com.valxel.worker.observability).
+    implementation(platform(libs.sentry.bom))
+    implementation("io.sentry:sentry-spring-boot-4-starter")
+    implementation("io.sentry:sentry-logback")
     // Feature flags from the product's Flipt over OFREP (com.valxel.worker.flags).
     implementation(libs.openfeature.sdk)
     implementation("org.springframework.boot:spring-boot-starter-restclient")
