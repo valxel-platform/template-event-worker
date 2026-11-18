@@ -1,0 +1,30 @@
+# The template conformance suite (.github/scripts/conformance.py, managed by the platform): the built
+# image does what every event worker repo must. It starts against its own database and Kafka, and a
+# greeting saved upstream arrives on its topic: the worker applies it, continuing the trace.
+image: "template-event-worker:ci"  # the tag CI builds
+command: "./gradlew bootRun"  # conformance.py local: the app as a process
+# It serves no HTTP (no endpoints: nothing calls a worker), so it is up once Spring says so.
+ready_log: "Started Application"
+start_s: 120
+postgres: "postgres:17-alpine"
+kafka: "apache/kafka:4.1.0"
+env:
+  DATABASE_URL: "{postgres_jdbc}"
+  DATABASE_USER: postgres
+  DATABASE_PASSWORD: "{postgres_password}"
+  KAFKA_BOOTSTRAP: "{kafka}"
+  WORKER_TOPICS: conformance.template-service.greetings.v1
+  FLAGS_URL: "{ofrep}"
+  PRODUCT: conformance
+  ENVIRONMENT: ci
+  MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT: "{otlp}/v1/traces"
+steps:
+  - produce:
+      topic: conformance.template-service.greetings.v1
+      key: g-1
+      value: {specversion: "1.0", id: e-1, source: conformance/intake-api, type: valxel.greeting.saved.v1,
+              time: "2026-11-04T12:00:00Z", subject: greeting/g-1,
+              data: {id: g-1, name: Ada, message: Hello, saved_by: user-1}}
+    wait_s: 10
+# An event worker writes no audit records (its sources did), and the example applies no flag yet.
+checks: [tracing]
