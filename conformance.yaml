@@ -3,8 +3,8 @@
 # greeting saved upstream arrives on its topic: the worker applies it, continuing the trace.
 image: "template-event-worker:ci"  # the tag CI builds
 command: "./gradlew bootRun"  # conformance.py local: the app as a process
-port: 8080
-ready: /actuator/health
+# It serves no HTTP (no endpoints: nothing calls a worker), so it is up once Spring says so.
+ready_log: "Started Application"
 start_s: 120
 postgres: "postgres:17-alpine"
 kafka: "apache/kafka:4.1.0"
