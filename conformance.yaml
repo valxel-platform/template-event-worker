@@ -26,5 +26,6 @@ steps:
               time: "2026-11-04T12:00:00Z", subject: greeting/g-1,
               data: {id: g-1, name: Ada, message: Hello, saved_by: user-1}}
     wait_s: 10
-# An event worker writes no audit records (its sources did), and the example applies no flag yet.
-checks: [tracing]
+# An event worker writes no audit records (its sources did). Applying the greeting reads the example
+# feature's flag (GreetingSavedHandler.exampleFlag).
+checks: [tracing, flags]
