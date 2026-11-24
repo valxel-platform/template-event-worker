@@ -2,7 +2,6 @@ package com.valxel.worker.gcp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.cloud.NoCredentials;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;
@@ -29,12 +28,13 @@ class FirestoreGreetingStoreTest {
 
     @BeforeAll
     static void connect() {
-        // The emulator takes no credentials; in the platform the pod's Google service account signs requests.
+        // As StoreConfig.firestore builds it: setEmulatorHost alone gives the client its emulator
+        // channel and credentials. (Adding NoCredentials makes the client open a plaintext channel to
+        // the default host, firestore.googleapis.com, instead of the emulator.) In the platform the
+        // pod's Google service account signs requests.
         firestore = FirestoreOptions.newBuilder()
                 .setProjectId("test-project")
-                // IPv4: the emulator listens on 0.0.0.0, and "localhost" may resolve to ::1 first.
-                .setEmulatorHost("127.0.0.1:" + emulator.getMappedPort(8080))
-                .setCredentials(NoCredentials.getInstance())
+                .setEmulatorHost(emulator.getEmulatorEndpoint())
                 .build()
                 .getService();
     }
