@@ -32,7 +32,8 @@ class FirestoreGreetingStoreTest {
         // The emulator takes no credentials; in the platform the pod's Google service account signs requests.
         firestore = FirestoreOptions.newBuilder()
                 .setProjectId("test-project")
-                .setEmulatorHost(emulator.getEmulatorEndpoint())
+                // IPv4: the emulator listens on 0.0.0.0, and "localhost" may resolve to ::1 first.
+                .setEmulatorHost("127.0.0.1:" + emulator.getMappedPort(8080))
                 .setCredentials(NoCredentials.getInstance())
                 .build()
                 .getService();

@@ -69,6 +69,10 @@ dependencies {
             version { require("[1.1.10.9,2.0)") }
             because("GHSA-q233-g92q-qxp6, GHSA-gwq9-9ffj-mvrv, through kafka-clients")
         }
+        implementation("com.google.guava:guava") {
+            version { require("33.7.2-jre") }
+            because("GHSA-xxph-c9ww-hj94, through the Google Cloud libraries")
+        }
     }
 }
 
