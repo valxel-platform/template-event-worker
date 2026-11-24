@@ -129,11 +129,14 @@ Kafka security settings go under `spring.kafka.properties`.
 2. Set `WORKER_TOPICS` and `KAFKA_GROUP` (one group per worker; every replica shares it).
 3. Replace the greeting handler, its table and its tests with your own.
 
-## AWS read models (VX-19)
+## Cloud read models (VX-19)
 
-A read model can live in DynamoDB instead of Postgres when the design's Resources section gives
-the worker a `dynamodb-table` (for example `greetings: dynamodb-table; partition_key=id`, with
-`writes: <this worker>`):
+A read model can live in the cloud's key-value store instead of Postgres when the design's
+Resources section gives the worker a `key-value-table` (for example
+`greetings: key-value-table; partition_key=id`, with `writes: <this worker>`): DynamoDB on AWS,
+Firestore on Google Cloud.
+
+On AWS:
 
 - `READ_MODEL_STORE=dynamodb`, and `workload.yaml` binds the table's name to
   `GREETINGS_TABLE_NAME` (`dependencies.resources`). The SDLC tool writes both.
@@ -143,6 +146,16 @@ the worker a `dynamodb-table` (for example `greetings: dynamodb-table; partition
   or from an earlier Kafka offset, so duplicates and replays change nothing. Applied events are
   still recorded in Postgres.
 - Tests run against DynamoDB Local in a container (`DynamoGreetingStoreTest`).
+
+On Google Cloud:
+
+- `READ_MODEL_STORE=firestore`; `GREETINGS_TABLE_NAME` is the resource's Firestore database
+  (each `key-value-table` is a database of its own, its items in the collection `items`).
+- Credentials are Application Default Credentials: in the platform, the pod's Google service
+  account through GKE Workload Identity, with only the roles the design declared. Never set keys.
+- `FirestoreGreetingStore` writes in one transaction per event, only if the document is new or
+  from an earlier Kafka offset, so duplicates and replays change nothing.
+- Tests run against the Firestore emulator in a container (`FirestoreGreetingStoreTest`).
 
 ## Performance tests
 

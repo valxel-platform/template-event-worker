@@ -41,6 +41,10 @@ dependencies {
     implementation("software.amazon.awssdk:url-connection-client")
     // Each AWS call as a span of this component, in OpenChoreo's traces.
     implementation(libs.otel.aws.sdk)
+    // Google Cloud read models (VX-19): Firestore through Application Default Credentials (the
+    // pod's Google service account through GKE Workload Identity).
+    implementation(platform(libs.google.cloud.bom))
+    implementation("com.google.cloud:google-cloud-firestore")
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
@@ -50,6 +54,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("org.testcontainers:testcontainers-kafka")
+    testImplementation("org.testcontainers:testcontainers-gcloud")
     testImplementation("org.awaitility:awaitility")
     testImplementation("org.testcontainers:testcontainers")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -63,6 +68,10 @@ dependencies {
         implementation("org.xerial.snappy:snappy-java") {
             version { require("[1.1.10.9,2.0)") }
             because("GHSA-q233-g92q-qxp6, GHSA-gwq9-9ffj-mvrv, through kafka-clients")
+        }
+        implementation("com.google.guava:guava") {
+            version { require("33.7.2-jre") }
+            because("GHSA-xxph-c9ww-hj94, through the Google Cloud libraries")
         }
     }
 }

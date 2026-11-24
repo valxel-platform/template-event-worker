@@ -92,12 +92,15 @@ app:
     namespace: ${FLAGS_NAMESPACE:}       # e.g. emr
     token: ${FLAGS_TOKEN:}               # only if the product's Flipt requires one for evaluation
     cache-seconds: ${FLAGS_CACHE_SECONDS:30}   # each answer is reused this long, per flag and user
-  # Where the read model lives: postgres (the datasource above) or dynamodb (VX-19). With dynamodb,
-  # OpenChoreo binds the table's name from the resource (workload.yaml) and the pod's identity
-  # signs requests; the worker still records applied events in Postgres.
+  # Where the read model lives: postgres (the datasource above), dynamodb (AWS) or firestore (Google
+  # Cloud), VX-19. With a key-value-table, OpenChoreo binds its name (the table, or the Firestore
+  # database) from the resource (workload.yaml) and the pod's identity signs requests; the worker
+  # still records applied events in Postgres.
   store: ${READ_MODEL_STORE:postgres}
   dynamodb:
     table: ${GREETINGS_TABLE_NAME:}
+  firestore:
+    project: ${GOOGLE_CLOUD_PROJECT:}
   worker:
     topics: ${WORKER_TOPICS:local.template-service.greetings.v1}   # comma-separated
     dead-letter-suffix: .dlt
