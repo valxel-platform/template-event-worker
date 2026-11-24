@@ -33,10 +33,13 @@ class StoreConfigFirestoreTest {
         store.save(new Greeting("grace", "Grace", "Hi", "u2", "e1", Instant.parse("2026-11-06T00:00:00Z")),
                 new Position("g", 0, 1));
 
-        try (Firestore firestore = StoreConfig.firestore("test-project", "(default)", emulator.getEmulatorEndpoint())) {
+        Firestore firestore = StoreConfig.firestore("test-project", "(default)", emulator.getEmulatorEndpoint());
+        try {
             var doc = firestore.collection(FirestoreGreetingStore.COLLECTION).document("grace").get().get();
             assertThat(doc.getString("message")).isEqualTo("Hi");
             assertThat(doc.getLong("source_offset")).isEqualTo(1L);
+        } finally {
+            firestore.close();
         }
     }
 }
