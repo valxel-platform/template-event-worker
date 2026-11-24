@@ -6,9 +6,9 @@ metadata:
 # No endpoints: nothing calls a worker (VX-17). Health and metrics are on the platform's port only.
 endpoints: []
 dependencies:
-  # The AWS resources the design gives this worker (VX-19). OpenChoreo binds each output to an
-  # environment variable once the resource is ready; the pod's own IAM role (EKS Pod Identity)
-  # holds only the declared access. The SDLC tool writes these from the HLD's Resources section.
+  # The cloud resources the design gives this worker (VX-19). OpenChoreo binds each output to an
+  # environment variable once the resource is ready; the pod's own identity (EKS Pod Identity, or
+  # GKE Workload Identity) holds only the declared access. The SDLC tool writes these from the HLD's Resources section.
   # resources:
   #   - ref: greetings
   #     envBindings:
@@ -16,6 +16,6 @@ dependencies:
 configurations:
   env:
     - name: READ_MODEL_STORE
-      value: postgres            # dynamodb with the greetings resource above
+      value: postgres            # dynamodb (AWS) or firestore (Google Cloud) with the greetings resource above
     - name: WORKER_TOPICS
       value: local.template-service.greetings.v1   # <product>.<service>.<entity>.v1
