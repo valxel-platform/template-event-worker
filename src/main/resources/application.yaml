@@ -36,7 +36,7 @@ spring:
     # properties: { security.protocol: SASL_SSL, sasl.mechanism: SCRAM-SHA-512, sasl.jaas.config: ... }
 
 server:
-  port: ${PORT:8080}                  # actuator only: health, metrics
+  port: ${PORT:8081}                  # actuator only (health, metrics): the management port, as in every template
   shutdown: graceful
 
 management:
